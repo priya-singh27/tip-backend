@@ -1,18 +1,19 @@
-const mysql = require('mysql2');
 const { pool } = require('../utils/dbConfig');
 
-async function findUserById(userId) {
+async function findWaiterById(id) {
     try {
-        const [rows] = await pool.promise().query('SELECT * FROM users WHERE user_id=?', [userId]);
+        const [rows] = await pool.promise().query('SELECT * FROM waiters WHERE waiter_id=?', [id]);
         if (rows.length == 0) {
             let errObj = {
                 code: 404,
-                message:'User not found'
+                message:'Waiter not found'
             }
             return [errObj, null];
         }
+
         return [null, rows[0]];
     } catch (err) {
+        console.log(err);
         let errObj = {
             code: 500,
             message:'Internal server error'
@@ -21,29 +22,29 @@ async function findUserById(userId) {
     }
 }
 
-async function findUserByEmail(email) {
+async function findWaiterByEmail(email) {
     try {
-        const [rows] = await pool.promise().query('SELECT * FROM users WHERE email=?', [email]);
+        const [rows] = await pool.promise().query('SELECT * FROM waiters WHERE email=?', [email]);
         if (rows.length==0) {
             let errObj = {
                 code: 404,
-                message:'user not found'
+                message:'Waiter not found'
             }
             return [errObj, null];
         }
-        return [null, rows[0]];//row is an array of objects we are returning the first element of that array
-        
+        return [null, rows[0]];
+
     } catch (err) {
         console.log(err);
         let errObj = {
             code: 500,
-            message: 'Internal server error'
-        };
+            message:'Internal server error'
+        }
         return [errObj, null];
     }
 }
 
 module.exports = {
-    findUserByEmail,
-    findUserById
+    findWaiterByEmail,
+    findWaiterById
 }

@@ -1,4 +1,4 @@
 module.exports = {
-    createUser: require('./createUser.joi'),
+    createUser: require('./register.joi'),
     loginUser:require('./login.joi')
 }
