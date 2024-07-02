@@ -14,7 +14,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRET_KEY;
 
-const getUpdatedBalance = async (req, res) => {
+const getBalance = async (req, res) => {
     try {
         const id = req.user._id;
         if (!id) {
@@ -23,7 +23,7 @@ const getUpdatedBalance = async (req, res) => {
 
         const [err, wallet] = await findUserInWallet(id, 'user');
         if (err) {
-            if (err.code == 404) return notFoundResponse(res, 'USer not found');
+            if (err.code == 404) return notFoundResponse(res, 'User not found');
             if (err.code == 500) return serverErrorResponse(res, 'Internal server error');
         }
         const balance = wallet.balance;
@@ -143,7 +143,7 @@ const registerUser = async (req, res) => {
 module.exports = {
     registerUser,
     loginUser,
-    getUpdatedBalance,
+    getBalance,
     getUser
 }
 

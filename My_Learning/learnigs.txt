@@ -1,0 +1,7 @@
+(Q)Why should we use map?
+ans: map returns an array of promises: When you use map with an async callback, it returns an array of promises.
+ Each promise represents the result of the asynchronous operation for each element of the array.
+
+ whereas,forEach doesn't handle promises: forEach iterates over the array and executes the callback function on 
+ each element without waiting for any asynchronous operations inside the callback to complete. This can lead to 
+ unanticipated behavior because the array waiters might not be populated correctly by the time you try to return it. 

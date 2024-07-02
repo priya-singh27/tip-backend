@@ -3,7 +3,7 @@ const { pool } = require('../utils/dbConfig');
 
 async function findUserById(userId) {
     try {
-        const [rows] = await pool.promise().query('SELECT * FROM users WHERE user_id=?', [userId]);
+        const [rows] = await pool.promise().query('SELECT user_id,username,email FROM users WHERE user_id=?', [userId]);
         if (rows.length == 0) {
             let errObj = {
                 code: 404,

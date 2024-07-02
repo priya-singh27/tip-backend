@@ -8,7 +8,8 @@ connectToDB();
 const user = require('./routes/user');
 const waiter = require('./routes/waiter');
 const payment = require('./routes/payment');
-const owner=require('./routes/owner')
+const owner = require('./routes/owner');
+const restaurant = require('./routes/restaurant');
 
 // added for stripe signature
 app.use(
@@ -19,6 +20,7 @@ app.use(
    })
  );
 
+app.use('/restaurant', restaurant);
 app.use('/owner', owner);
 app.use('/payment', payment);
 app.use('/waiter', waiter);

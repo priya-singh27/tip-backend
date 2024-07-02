@@ -2,9 +2,115 @@ const { badRequestResponse, serverErrorResponse, successResponse, notFoundRespon
 const { pool } = require('../utils/dbConfig');
 const joi_schema = require('../joi_validation/waiter/index');
 const { findWaiterByEmail } = require('../repository/waiter.repository');
+const { getAllWaitersOfRestaurant,isFirstReq,getAllRequests} = require('../repository/restaurant_waiters.repository');
+const { findRestaurantByUniqueIdAndName,getRestaurantByUniqueId, findRestaurantById } = require('../repository/restaurant.repository')
+const {findWaiterInWallet } = require('../repository/wallet.repository');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRET_KEY;
+
+const allRequestsOfWaiter = async (req, res) => {
+    try {
+        const waiterId = req.user._id;
+        if (!waiterId) return notFoundResponse(res, 'Invalid token');
+
+        const [err, requests] = await getAllRequests(waiterId);
+        if (err) {
+            if (err.code == 404) return notFoundResponse(res, 'Waiter not found');
+            if (err.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
+        const request_list = await Promise.all(requests.map(
+            async (ele) => {
+                const [err, restaurant] = await findRestaurantById(ele.restaurant_id);
+                if (err) return notFoundResponse(res, 'Restaurant not found');
+                return {
+                    restaurant_name: restaurant.name,
+                    status: ele.status
+                }
+            }
+        ));
+        return successResponse(res, request_list, 'All requests are sent');
+    } catch (err) {
+        console.log(err);
+        return serverErrorResponse(res, 'Internal server error');
+    }
+}
+
+const getBalance = async (req, res) => {
+    try {
+        const id = req.user._id;
+        if (!id) {
+            return notFoundResponse(res, 'Invalid token');
+        }
+
+        const [err, wallet] = await findWaiterInWallet(id, 'waiter');
+        if (err) {
+            if (err.code == 404) return notFoundResponse(res, 'Waiter not found');
+            if (err.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
+        const balance = wallet.balance;
+        return successResponse(res, balance, 'Balance updated');
+    } catch (err) {
+        console.log(err);
+        return serverErrorResponse(res, 'Internal server error');
+    }
+}
+
+const getWaitersOfRestaurant = async (req, res) => {
+    try {
+        const restaurant_id = req.params.id;
+        const [err, waiters] = await getAllWaitersOfRestaurant(restaurant_id);
+        if (err) {
+            if (err.code == 404) return notFoundResponse(res, 'Not found');
+            if (err.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
+        
+        return successResponse(res, waiters, 'List of waiters  has been sent');
+    } catch (err) {
+        console.log(err);
+        return serverErrorResponse(res, 'Internal server error');
+    }
+}
+
+const sendRequest = async (req, res) => {
+    try {
+        const { error } = joi_schema.requestRestaurant.validate(req.body);
+        if (error) {
+            return badRequestResponse(res, 'Invalid data entered');
+        }
+
+        const waiter_id = req.user._id;
+        if (!waiter_id) return badRequestResponse(res, 'Invalid token');
+
+        const [err1, isRestaurant] = await findRestaurantByUniqueIdAndName(req.body.uniqueId,req.body.restaurantName);
+        if (err1) {
+            if (err1.code == 404) return notFoundResponse(res, 'Restaurant not found');
+            if (err1.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
+        const [err2, restaurant_id] = await getRestaurantByUniqueId(req.body.uniqueId);
+        if (err2) {
+            if (err1.code == 404) return notFoundResponse(res, 'Restaurant not found');
+            if (err1.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
+        
+        const [err3, request] = await isFirstReq(restaurant_id, waiter_id);
+        if (request) {
+            return badRequestResponse(res, 'Already sent');
+        }
+        
+        if (err3.code == 500) {
+            return serverErrorResponse(res, 'Internal server error');
+        }
+
+        //send request
+        const myReq = await pool.promise().query('INSERT INTO restaurant_waiters (restaurant_id,waiter_id,status) VALUES (?, ?, "pending")', [restaurant_id, waiter_id]);
+        return successResponse(res, myReq,'Request sent successfully');
+    } catch (err) {
+        console.log(err);
+        return serverErrorResponse(res, 'Internal server error');
+    }
+}
+
 
 const loginWaiter = async (req, res) => {
     try {
@@ -25,7 +131,7 @@ const loginWaiter = async (req, res) => {
         
         if (!isValid) return unauthorizedResponse(res, 'Incorrect password entered');
 
-        const token = jwt.sign({ id: waiter.waiter_id }, secretKey);
+        const token = jwt.sign({ _id: waiter.waiter_id ,email:waiter.email}, secretKey);
         res.setHeader('x-auth-token', token);
 
         return successResponse(res, null,'Successfully logged in');
@@ -90,5 +196,9 @@ const registerWaiter = async (req, res) => {
 
 module.exports = {
     registerWaiter,
-    loginWaiter
+    loginWaiter,
+    sendRequest,
+    getWaitersOfRestaurant,
+    getBalance,
+   allRequestsOfWaiter
 }
