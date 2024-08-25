@@ -1,4 +1,3 @@
-const mysql = require('mysql2');
 const { pool } = require('../utils/dbConfig');
 
 async function findUserById(userId) {

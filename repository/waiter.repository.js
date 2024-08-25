@@ -1,10 +1,9 @@
 const { pool } = require('../utils/dbConfig');
 
 
-
 async function findWaiterById(id) {
     try {
-        const [rows] = await pool.promise().query('SELECT waiter_id,username,email FROM waiters WHERE waiter_id=?', [id]);
+        const [rows] = await pool.promise().query('SELECT * FROM waiters WHERE waiter_id=?', [id]);
         if (rows.length == 0) {
             let errObj = {
                 code: 404,
@@ -26,7 +25,7 @@ async function findWaiterById(id) {
 
 async function findWaiterByEmail(email) {
     try {
-        const [rows] = await pool.promise().query('SELECT waiter_id,username,email FROM waiters WHERE email=?', [email]);
+        const [rows] = await pool.promise().query('SELECT * FROM waiters WHERE email=?', [email]);
         if (rows.length==0) {
             let errObj = {
                 code: 404,

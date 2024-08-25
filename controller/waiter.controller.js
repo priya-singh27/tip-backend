@@ -4,10 +4,37 @@ const joi_schema = require('../joi_validation/waiter/index');
 const { findWaiterByEmail } = require('../repository/waiter.repository');
 const { getAllWaitersOfRestaurant,isFirstReq,getAllRequests} = require('../repository/restaurant_waiters.repository');
 const { findRestaurantByUniqueIdAndName,getRestaurantByUniqueId, findRestaurantById } = require('../repository/restaurant.repository')
-const {findWaiterInWallet } = require('../repository/wallet.repository');
+const { findWaiterInWallet } = require('../repository/wallet.repository');
+const { getTransactions} = require('../repository/transaction.repository');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRET_KEY;
+
+const getTransactionHistory = async (req,res) => {
+    try {
+        const waiterId = req.user._id;
+
+        const [err1, waiterInWallets] = await findWaiterInWallet(waiterId, 'waiter');
+        if (err1) {
+            if (err1.code == 404) return notFoundResponse(res, 'user not found');
+            if (err1.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
+
+        const waiterWalletId = waiterInWallets.wallet_id;
+
+        const [err, transactions] = await getTransactions(waiterWalletId);
+
+        if (err) {
+            if (err.code == 404) return notFoundResponse(res, 'No transactions found');
+            if (err.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
+        
+        return successResponse(res,transactions,'All transactions sent')
+    } catch (err) {
+        console.log(err);
+        return serverErrorResponse(res, 'Internal server error');
+    }
+}
 
 const allRequestsOfWaiter = async (req, res) => {
     try {
@@ -82,11 +109,6 @@ const sendRequest = async (req, res) => {
         const waiter_id = req.user._id;
         if (!waiter_id) return badRequestResponse(res, 'Invalid token');
 
-        const [err1, isRestaurant] = await findRestaurantByUniqueIdAndName(req.body.uniqueId,req.body.restaurantName);
-        if (err1) {
-            if (err1.code == 404) return notFoundResponse(res, 'Restaurant not found');
-            if (err1.code == 500) return serverErrorResponse(res, 'Internal server error');
-        }
         const [err2, restaurant_id] = await getRestaurantByUniqueId(req.body.uniqueId);
         if (err2) {
             if (err1.code == 404) return notFoundResponse(res, 'Restaurant not found');
@@ -121,20 +143,20 @@ const loginWaiter = async (req, res) => {
         }
 
         const [err, waiter] = await findWaiterByEmail(req.body.email);
-        
         if (err) {
             if (err.code == 404) return notFoundResponse(res, 'Waiter not found');
             if (err.code == 500) return serverErrorResponse(res, 'here Internal server error');
         }
-
-        const isValid = await bcrypt.compare( req.body.password, waiter.password_hash);//waiter is an object returned
         
-        if (!isValid) return unauthorizedResponse(res, 'Incorrect password entered');
+        const isValid = await bcrypt.compare( req.body.password, waiter.password_hash);//waiter is an object returned
+        if (!isValid) {
+            return unauthorizedResponse(res, 'Incorrect password entered');
+        } 
 
         const token = jwt.sign({ _id: waiter.waiter_id ,email:waiter.email}, secretKey);
         res.setHeader('x-auth-token', token);
 
-        return successResponse(res, null,'Successfully logged in');
+        return successResponse(res, waiter.username,'Successfully logged in');
 
     } catch (err) {
         console.log(err);
@@ -200,5 +222,6 @@ module.exports = {
     sendRequest,
     getWaitersOfRestaurant,
     getBalance,
-   allRequestsOfWaiter
+    allRequestsOfWaiter,
+    getTransactionHistory
 }

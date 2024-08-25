@@ -154,7 +154,7 @@ const loginOwner = async (req, res) => {
         const token = jwt.sign({ _id: owner.owner_id, email: owner.email }, secretKey);
 
         res.setHeader('x-auth-token', token);
-        return successResponse(res, 'Successfully logged in');
+        return successResponse(res, owner.username,'Successfully logged in');
 
     } catch (err) {
         console.log(err);

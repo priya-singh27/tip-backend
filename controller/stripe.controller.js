@@ -1,5 +1,6 @@
+require('dotenv').config();
 const { pool } = require('../utils/dbConfig');
-const stripe = require('stripe')('sk_test_51L6zQ2SEudow57FtZudQNAlAbVUmgIAKZcU4Naj2IyEb78cRLym2lHfuAromrcCO9MdKJRWU8xAoxjZSsZRhZa8c008JA1LLZR');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const {
     successResponse,
     serverErrorResponse,
@@ -9,8 +10,8 @@ const {
     unauthorizedResponse
 } = require('../utils/response');
 const { findUserByEmail, findUserById } = require('../repository/user.repository');
-const { findUserInWallet } = require('../repository/wallet.repository');
-const endpointSecret = 'whsec_22933804d2bc95ec8eb08ef9c0c7595bfaa31e2fa2708f3c93a2d86655c4f740';
+const { findUserInWallet,findWaiterInWallet } = require('../repository/wallet.repository');
+const endpointSecret=process.env.ENDPOINT_SECRET ;
 
 const walletToWalletTransfer = async (req, res) => {
 
@@ -33,7 +34,7 @@ const walletToWalletTransfer = async (req, res) => {
             if (err1.code == 500) return serverErrorResponse(res, 'Internal server error');
         }
 
-        const [err2, waiter] = await findUserInWallet(to_id,'waiter');
+        const [err2, waiter] = await findWaiterInWallet(to_id,'waiter');
         if (err2) {
             await connection.rollback();
             if (err2.code == 404) return  notFoundResponse(res, 'Not found');
@@ -45,7 +46,8 @@ const walletToWalletTransfer = async (req, res) => {
             await connection.rollback();
             return badRequestResponse(res, 'Insufficient fund');
         }
-
+        console.log("user.wallet_id: " + user.wallet_id);
+        console.log("waiter.wallet_id: "+waiter.wallet_id);
         await connection.execute('UPDATE wallets SET balance=balance-? WHERE wallet_id=?', [req.body.amount, user.wallet_id]);
         await connection.execute('UPDATE wallets SET balance=balance+? WHERE wallet_id=?', [req.body.amount, waiter.wallet_id]);
 
@@ -70,9 +72,15 @@ const walletToWalletTransfer = async (req, res) => {
 
 const handleStripeWebhook = async (req, res) => {
     const connection = await pool.promise().getConnection();
-    
+    const userId=user.req.user._id//get the id of user
     try {
         await connection.beginTransaction();
+
+        const [err, user] = await findUserById(userId);
+        if (err) {
+            if (err.code == 404) return notFoundResponse(res, 'This user does not exist');
+            if (err.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
 
         console.log("Webhook Started...");
         const sig = req.headers['stripe-signature'];
@@ -184,44 +192,6 @@ const createPaymentIntent = async (req, res) => {
         return serverErrorResponse(res, 'Internal server error');
     }
 }
-
-// const createPaymentIntent = async (req, res) => {
-//     try {
-        
-
-//         // const userId = req.user.user_id;
-
-//         const session = await stripe.checkout.sessions.create({
-//             success_url: 'https://example.com/success',
-//             line_items: [
-//                 {
-//                   price_data: {
-//                     currency: "inr",
-//                     unit_amount: req.body.amount*100,
-//                     product_data: {
-//                         name: "wallet recharge : tip",
-//                     },
-//                   },
-//                   quantity: 1,
-//                 },
-
-//             ],
-//             metadata: {
-//                 user_id: userId, // Add userId to metadata
-//             },            
-//             mode: 'payment',
-//             cancel_url: 'https://example.com/cancel',
-//             payment_method_types:['card']
-//         });
-//         //https://dashboard.stripe.com/payments/pi_3PPkkGSEudow57Ft1sD3zQjE
-//         console.log(session);
-//         return successResponse(res,session.url,'Payment-intent created')
-//     } catch (err) {
-//         console.log(err);
-//         return serverErrorResponse(res, 'Internal server error');
-//     }
-// }
-
 
 module.exports = {
     createPaymentIntent,

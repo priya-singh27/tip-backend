@@ -3,7 +3,7 @@ const { pool } = require('../utils/dbConfig');
 
 async function findOwnerById(id) {
     try {
-        const [rows] = await pool.promise().query('SELECT owner_id,username,email FROM owners WHERE owner_id=?', [id]);
+        const [rows] = await pool.promise().query('SELECT * FROM owners WHERE owner_id=?', [id]);
         if (rows.length == 0) {
             let errObj = {
                 code: 404,

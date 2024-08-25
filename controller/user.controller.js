@@ -9,10 +9,37 @@ const {
 const { pool } = require('../utils/dbConfig');
 const joi_schema = require('../joi_validation/user/index');
 const { findUserByEmail, findUserById } = require('../repository/user.repository');
-const { findUserInWallet} = require('../repository/wallet.repository');
+const { findUserInWallet,findWaiterInWallet } = require('../repository/wallet.repository');
+const { getTransactions} = require('../repository/transaction.repository');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRET_KEY;
+
+const getTransactionHistory = async (req,res) => {
+    try {
+        const userId = req.user._id;
+
+        const [err1, userInWallets] = await findUserInWallet(userId, 'user');
+        if (err1) {
+            if (err1.code == 404) return notFoundResponse(res, 'user not found');
+            if (err1.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
+
+        const userWalletId = userInWallets.wallet_id;
+
+        const [err, transactions] = await getTransactions(userWalletId);
+
+        if (err) {
+            if (err.code == 404) return notFoundResponse(res, 'No transactions found');
+            if (err.code == 500) return serverErrorResponse(res, 'Internal server error');
+        }
+        
+        return successResponse(res,transactions,'All transactions sent')
+    } catch (err) {
+        console.log(err);
+        return serverErrorResponse(res, 'Internal server error');
+    }
+}
 
 const getBalance = async (req, res) => {
     try {
@@ -77,7 +104,7 @@ const loginUser = async (req, res) => {
 
         res.setHeader('x-auth-token', token);
         
-        return successResponse(res,'Successfully logged in');
+        return successResponse(res,user.username,'Successfully logged in');
         
     } catch (err) {
         console.log(err);
@@ -144,7 +171,8 @@ module.exports = {
     registerUser,
     loginUser,
     getBalance,
-    getUser
+    getUser,
+    getTransactionHistory
 }
 
 

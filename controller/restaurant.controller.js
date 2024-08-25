@@ -9,19 +9,6 @@ const joi_schema = require('../joi_validation/restaurant/index');
 const { findOwnerByEmail, findOwnerById } = require('../repository/owner.repository');
 const { getAllRestaurants, getRestaurantByUniqueId, findRestaurantById, doesRestaurantBelong, getRestaurantByNameAndOwnerId } = require('../repository/restaurant.repository');
 
-
-//user register
-//owner registered
-//owner added a res
-//waiter registered
-//waiter fetches res
-//waiter tried to enroll in a res,after successful req
-//res owner can see the list of approved and pending req
-//owner accepted the req
-//user will try to add some balance from bank account to wallet
-//user will try to send a tip to the authorised waiter
-
-
 const getRestaurants = async (req, res) => {
     try {
         const [err, restaurants] = await getAllRestaurants();
