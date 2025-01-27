@@ -3,88 +3,109 @@
 ## Overview
 TipEase is a platform that facilitates tipping transactions between users, waiters, and restaurant owners. The API provides endpoints for user management, restaurant operations, payment processing, and waiter services.
 
+## Getting Started
+
+1. Clone the repository
+```bash
+git clone <repository-url>
+```
+
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Start the server
+```bash
+node index.js
+```
+
 ## Authentication
-Most endpoints require authentication using the `authMiddleware`. Include your authentication token in the request header.
+Most endpoints require authentication using the `authMiddleware`. Include your authentication token in the request header as `x-auth-token`.
+
+## Response Format
+
+All API endpoints return responses in the following consistent format:
+
+```javascript
+// Success Response
+{
+    "code": 200,
+    "data": {}, // Response data
+    "message": "Success message"
+}
+
+// Error Response
+{
+    "code": 500, // or 400, 404, etc.
+    "message": "Error message"
+}
+```
 
 ## API Endpoints
 
 ### User Routes
 Base path: `/api/user`
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/register` | Register a new user | No |
-| POST | `/login` | User login | No |
-| GET | `/getUser` | Get user details | Yes |
-| GET | `/get-balance` | Get user's wallet balance | Yes |
-| GET | `/get-transaction-history` | Get user's transaction history | Yes |
+| Method | Endpoint | Auth Required | Description | Response Code |
+|--------|----------|---------------|-------------|---------------|
+| POST | `/register` | No | Register a new user | 200 |
+| POST | `/login` | No | User login | 200 |
+| GET | `/getUser` | Yes | Get user details | 200 |
+| GET | `/get-balance` | Yes | Get user's wallet balance | 200 |
+| GET | `/get-transaction-history` | Yes | Get user's transaction history | 200 |
 
 ### Waiter Routes
 Base path: `/api/waiter`
 
-| Method | Endpoint | Description | Auth Required | Request Body | Response |
-|--------|----------|-------------|---------------|--------------|-----------|
-| POST | `/register` | Register a new waiter | No | `{ username: string, email: string, password: string }` | Success message |
-| POST | `/login` | Waiter login | No | `{ email: string, password: string }` | Username and JWT token in header |
-| POST | `/request` | Send request to join restaurant | Yes | `{ uniqueId: string }` | Success message |
-| GET | `/all-waiters/:id` | Get all waiters of a restaurant | Yes | - | List of waiters |
-| GET | `/get-balance` | Get waiter's wallet balance | Yes | - | Current balance |
-| GET | `/get-request` | Get all requests made by waiter | Yes | - | List of requests with restaurant names and status |
-| GET | `/get-transaction-history` | Get waiter's transaction history | Yes | - | List of transactions |
+| Method | Endpoint | Auth Required | Description | Response Code |
+|--------|----------|---------------|-------------|---------------|
+| POST | `/register` | No | Register a new waiter | 200 |
+| POST | `/login` | No | Waiter login | 200 |
+| POST | `/request` | Yes | Send request to join restaurant | 200 |
+| GET | `/all-waiters/:id` | Yes | Get all waiters of a restaurant | 200 |
+| GET | `/get-balance` | Yes | Get waiter's wallet balance | 200 |
+| GET | `/get-request` | Yes | Get all requests made by waiter | 200 |
+| GET | `/get-transaction-history` | Yes | Get waiter's transaction history | 200 |
 
 ### Payment Routes
 Base path: `/api/payment`
 
-| Method | Endpoint | Description | Auth Required | Request Body | Response |
-|--------|----------|-------------|---------------|--------------|-----------|
-| POST | `/tip/:id` | Transfer tip from one wallet to another | Yes | `{ amount: number }` | Success message |
-| POST | `/create-payment-intent` | Create a Stripe payment intent | Yes | `{ amount: number }` | Stripe payment intent details |
-| POST | `/webhook` | Handle Stripe webhook events | No | Stripe event payload | Success message |
+| Method | Endpoint | Auth Required | Description | Response Code |
+|--------|----------|---------------|-------------|---------------|
+| POST | `/tip/:id` | Yes | Transfer tip from one wallet to another | 200 |
+| POST | `/create-payment-intent` | Yes | Create a Stripe payment intent | 200 |
+| POST | `/webhook` | No | Handle Stripe webhook events | 200 |
 
 ### Owner Routes
 Base path: `/api/owner`
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/register` | Register a new owner | No |
-| POST | `/login` | Owner login | No |
-| POST | `/accept-waiter` | Accept a waiter's request | Yes |
-| POST | `/addwaiter` | Add a new waiter | Yes |
-| GET | `/accepted-waiter/:id` | Get list of accepted waiters | Yes |
-| GET | `/pending-waiter/:id` | Get list of pending waiter requests | Yes |
-| GET | `/my-restaurants` | Get all restaurants owned by user | Yes |
+| Method | Endpoint | Auth Required | Description | Response Code |
+|--------|----------|---------------|-------------|---------------|
+| POST | `/register` | No | Register a new owner | 200 |
+| POST | `/login` | No | Owner login | 200 |
+| POST | `/accept-waiter` | Yes | Accept a waiter's request | 200 |
+| POST | `/addwaiter` | Yes | Add a new waiter | 200 |
+| GET | `/accepted-waiter/:id` | Yes | Get list of accepted waiters | 200 |
+| GET | `/pending-waiter/:id` | Yes | Get list of pending waiter requests | 200 |
+| GET | `/my-restaurants` | Yes | Get all restaurants owned by user | 200 |
 
 ### Restaurant Routes
 Base path: `/api/restaurant`
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/register` | Register a new restaurant | Yes |
-| GET | `/all-restaurants` | Get list of all restaurants | Yes |
+| Method | Endpoint | Auth Required | Description | Response Code |
+|--------|----------|---------------|-------------|---------------|
+| POST | `/register` | Yes | Register a new restaurant | 200 |
+| GET | `/all-restaurants` | Yes | Get list of all restaurants | 200 |
 
-## Request & Response Formats
+## Error Handling
 
-### Authentication Header
-```
-Authorization: Bearer <your_token>
-```
-
-### Success Response Format
-```json
-{
-    "success": true,
-    "data": <response_data>,
-    "message": "Success message"
-}
-```
-
-### Error Response Format
-```json
-{
-    "success": false,
-    "error": "Error message"
-}
-```
+The API implements comprehensive error handling with appropriate HTTP status codes:
+- 200: Success
+- 400: Bad Request
+- 401: Unauthorized
+- 404: Not Found
+- 500: Internal Server Error
 
 ## Transaction System
 
@@ -101,6 +122,16 @@ Authorization: Bearer <your_token>
 - Supports payment intents and charge events
 - Transaction records are maintained for all payment operations
 
+## Environment Variables
+
+Create a `.env` file in the root directory with the following:
+```
+STRIPE_SECRET_KEY=your_stripe_secret_key
+ENDPOINT_SECRET=your_stripe_webhook_secret
+SECRET_KEY=your_jwt_secret
+# Add database configuration
+```
+
 ## Database Tables
 The system uses the following main tables:
 - `users`
@@ -111,26 +142,14 @@ The system uses the following main tables:
 - `restaurant_waiters`
 - `wallet_transactions`
 
-## Error Handling
-The API uses standard HTTP status codes and returns detailed error messages:
-- 400: Bad Request - Invalid input data
-- 401: Unauthorized - Invalid authentication
-- 404: Not Found - Resource not found
-- 500: Internal Server Error - Server-side errors
+## Contributing
 
-## Setup
-1. Install dependencies
-2. Configure environment variables:
-   - `STRIPE_SECRET_KEY`
-   - `ENDPOINT_SECRET`
-   - `SECRET_KEY` (for JWT)
-3. Set up MySQL database
-4. Configure Stripe webhook endpoint
-5. Start the server
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## Notes
-- The Stripe webhook endpoint requires raw body parsing
-- All authenticated routes require a valid JWT token
-- Restaurant IDs are required in URL parameters for relevant endpoints
-- All monetary values are handled in INR
-- Database transactions are used for all financial operations to ensure data consistency
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
